@@ -17,27 +17,42 @@ $usuario = $_POST['usuario'];
 $contrasena = $_POST['contraseña'];
 $captcha_ingresado = $_POST['captcha'];
 
+// Supongamos que tienes una conexión a la base de datos llamada $conn
+
+// Contraseña que el usuario proporciona en el formulario
+$contrasena_usuario = $_POST['contraseña'];
+
+// Hashear la contraseña antes de almacenarla
+$contrasena_hasheada = password_hash($contrasena_usuario, PASSWORD_DEFAULT);
+
+// Insertar el nombre de usuario y la contraseña hasheada en la base de datos
+$sql = "INSERT INTO usuario (contrasena_hash) VALUES ('$contrasena_hasheada')";
+
+// Ejecutar la consulta
+$conn->query($sql);
+
+
+
 if ($captcha_ingresado === $_SESSION['captcha']) {
-    $query = "SELECT * FROM usuario WHERE usuario = '$usuario' AND contraseña = '$contrasena'";
+    $query = "SELECT * FROM usuario WHERE usuario = '$usuario'";
     $result = $conn->query($query);
 
     if ($result->num_rows > 0) {
-        echo "Inicio de sesión exitoso"; // Mensaje que será mostrado en el div 'mensaje'
+        $row = $result->fetch_assoc();
+
+        // Verificar la contraseña hasheada utilizando password_verify
+       if (password_verify($contrasena_usuario, $contrasena_hasheada)) {
+            echo "Inicio de sesión exitoso";
+            header("Location: inicio.php"); // Redirige a la página de inicio después del inicio de sesión
+            exit();
+        } else {
+            echo "Usuario o contraseña incorrectos.";
+        }
     } else {
         echo "Usuario o contraseña incorrectos.";
     }
 } else {
     echo "Captcha incorrecto.";
-}
-
-
-
-if ($row = $result->fetch_assoc()) {
-    $_SESSION['usuario_id'] = $row['id']; // Asigna el ID del usuario a la sesión
-    header("Location: inicio.php"); // Redirige a la página de inicio después del inicio de sesión
-    exit();
-} else {
-    $mensaje_error = "Credenciales incorrectas. Por favor, inténtalo de nuevo.";
 }
 
 $conn->close();
